@@ -122,4 +122,36 @@ router.delete('/:taskId', async (req, res) => {
   }
 });
 
+// Update order of tasks
+router.patch('/order', async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { order } = req.body; // [{ id: taskId, order: newOrder }, ...]
+    if (!Array.isArray(order)) {
+      return res.status(400).json({ error: 'Order must be an array of task objects.' });
+    }
+
+    // Verify project ownership
+    const project = await db.get(
+      'SELECT id FROM projects WHERE id = ? AND customerId = ? AND userId = ?',
+      req.params.projectId, req.params.customerId, req.user.id
+    );
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found or access denied' });
+    }
+
+    // Update each task's order
+    for (const item of order) {
+      await db.run(
+        'UPDATE tasks SET "order" = ? WHERE id = ? AND projectId = ? AND userId = ?',
+        item.order, item.id, req.params.projectId, req.user.id
+      );
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating task order:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

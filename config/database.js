@@ -49,6 +49,7 @@ export const initDatabase = async () => {
     estimatedHours REAL DEFAULT 1,
     completed INTEGER DEFAULT 0,
     userId INTEGER NOT NULL,
+    "order" INTEGER NOT NULL DEFAULT 0,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(projectId) REFERENCES projects(id) ON DELETE CASCADE,
