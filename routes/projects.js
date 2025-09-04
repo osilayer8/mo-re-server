@@ -22,9 +22,9 @@ router.get('/', async (req, res) => {
     const projects = await db.all('SELECT * FROM projects WHERE customerId = ? AND userId = ?', req.params.customerId, req.user.id);
     
     if (includeTasks === 'true') {
-      // Also fetch tasks for each project (only user's tasks)
+      // Also fetch tasks for each project (only user's tasks) ordered by "order"
       for (const project of projects) {
-        const tasks = await db.all('SELECT * FROM tasks WHERE projectId = ? AND userId = ?', project.id, req.user.id);
+        const tasks = await db.all('SELECT * FROM tasks WHERE projectId = ? AND userId = ? ORDER BY "order" ASC', project.id, req.user.id);
         project.tasks = tasks;
       }
     }
@@ -40,8 +40,9 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const db = getDatabase();
-    const { name } = req.body;
-    const { description = '', hourlyRate = 0 } = req.body;
+  const { name } = req.body;
+  const { description = '', hourlyRate = 0, pricingType = 'HOURLY', fixedPrice = 0, invoiceDate = '' } = req.body;
+  let { invoiceNumber = '' } = req.body;
     
     if (!name) {
       return res.status(400).json({ error: 'Project name is required' });
@@ -53,17 +54,39 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ error: 'Customer not found or access denied' });
     }
     
+    // If invoiceNumber not provided, default to user's current
+    if (!invoiceNumber) {
+      const userRow = await db.get('SELECT invoiceNumber FROM users WHERE id = ?', req.user.id)
+      invoiceNumber = userRow?.invoiceNumber || ''
+    }
     const result = await db.run(
-      'INSERT INTO projects (customerId, name, description, hourlyRate, userId) VALUES (?, ?, ?, ?, ?)',
-      req.params.customerId, name, description, hourlyRate, req.user.id
+      'INSERT INTO projects (customerId, name, description, invoiceNumber, invoiceDate, hourlyRate, pricingType, fixedPrice, userId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      req.params.customerId, name, description, invoiceNumber, invoiceDate, hourlyRate, pricingType, fixedPrice, req.user.id
     );
+
+    // After creating a project, auto-increment the user's global invoice number
+    const incrementPattern = (current) => {
+      if (!current || current.trim() === '') return '00001'
+      const match = current.match(/^(.*?)(\d+)([^\d]*)$/)
+      if (!match) return current + '-001'
+      const [, prefix, num, suffix] = match
+      const width = num.length
+      const nextNum = String(parseInt(num, 10) + 1).padStart(width, '0')
+      return prefix + nextNum + suffix
+    }
+    const nextInvoiceNo = incrementPattern((await db.get('SELECT invoiceNumber FROM users WHERE id = ?', req.user.id))?.invoiceNumber || '')
+    await db.run('UPDATE users SET invoiceNumber = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?', nextInvoiceNo, req.user.id)
     
     res.json({ 
       id: result.lastID, 
       customerId: req.params.customerId, 
       name, 
-      description, 
-      hourlyRate,
+  description, 
+  invoiceNumber,
+  hourlyRate,
+  invoiceDate,
+      pricingType,
+      fixedPrice,
       userId: req.user.id 
     });
   } catch (error) {
@@ -75,8 +98,8 @@ router.post('/', async (req, res) => {
 router.put('/:projectId', async (req, res) => {
   try {
     const db = getDatabase();
-    const { name } = req.body;
-    const { description = '', hourlyRate = 0 } = req.body;
+  const { name } = req.body;
+  const { description = '', hourlyRate = 0, pricingType = 'HOURLY', fixedPrice = 0, invoiceNumber = '', invoiceDate = '' } = req.body;
     
     if (!name) {
       return res.status(400).json({ error: 'Project name is required' });
@@ -92,8 +115,8 @@ router.put('/:projectId', async (req, res) => {
     }
     
     await db.run(
-      'UPDATE projects SET name = ?, description = ?, hourlyRate = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ? AND customerId = ? AND userId = ?',
-      name, description, hourlyRate, req.params.projectId, req.params.customerId, req.user.id
+      'UPDATE projects SET name = ?, description = ?, invoiceNumber = ?, invoiceDate = ?, hourlyRate = ?, pricingType = ?, fixedPrice = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ? AND customerId = ? AND userId = ?',
+      name, description, invoiceNumber, invoiceDate, hourlyRate, pricingType, fixedPrice, req.params.projectId, req.params.customerId, req.user.id
     );
     
     // Return updated project

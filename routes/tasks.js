@@ -33,7 +33,7 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const db = getDatabase();
-    const { name, estimatedHours = 1 } = req.body;
+    const { name, estimatedHours = 1, date = null } = req.body;
     
     if (!name) {
       return res.status(400).json({ error: 'Task name is required' });
@@ -49,8 +49,8 @@ router.post('/', async (req, res) => {
     }
     
     const result = await db.run(
-      'INSERT INTO tasks (projectId, name, estimatedHours, completed, userId) VALUES (?, ?, ?, 0, ?)',
-      req.params.projectId, name, estimatedHours, req.user.id
+      'INSERT INTO tasks (projectId, name, estimatedHours, completed, userId, date) VALUES (?, ?, ?, 0, ?, ?)',
+      req.params.projectId, name, estimatedHours, req.user.id, date
     );
     
     res.json({ 
@@ -59,7 +59,8 @@ router.post('/', async (req, res) => {
       name, 
       estimatedHours, 
       completed: 0,
-      userId: req.user.id 
+      userId: req.user.id,
+      date
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -70,7 +71,7 @@ router.post('/', async (req, res) => {
 router.put('/:taskId', async (req, res) => {
   try {
     const db = getDatabase();
-    const { name, estimatedHours = 1, completed } = req.body;
+    const { name, estimatedHours = 1, completed, date = null } = req.body;
     
     if (!name) {
       return res.status(400).json({ error: 'Task name is required' });
@@ -88,8 +89,8 @@ router.put('/:taskId', async (req, res) => {
     }
     
     await db.run(
-      'UPDATE tasks SET name = ?, estimatedHours = ?, completed = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ? AND projectId = ? AND userId = ?',
-      name, estimatedHours, completed ? 1 : 0, req.params.taskId, req.params.projectId, req.user.id
+      'UPDATE tasks SET name = ?, estimatedHours = ?, completed = ?, date = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ? AND projectId = ? AND userId = ?',
+      name, estimatedHours, completed ? 1 : 0, date, req.params.taskId, req.params.projectId, req.user.id
     );
     
     const updated = await db.get('SELECT * FROM tasks WHERE id = ? AND projectId = ? AND userId = ?', req.params.taskId, req.params.projectId, req.user.id);

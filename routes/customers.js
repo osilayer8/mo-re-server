@@ -33,14 +33,15 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const db = getDatabase();
-    const { name } = req.body;
+  const { name, contactPerson = '', billingStreet = '', billingNumber = '', billingPostalCode = '', billingCity = '', billingState = '', billingCountry = '', email = '', phone = '', vatNumber = '' } = req.body;
     
     if (!name) {
       return res.status(400).json({ error: 'Customer name is required' });
     }
     
-    const result = await db.run('INSERT INTO customers (name, userId) VALUES (?, ?)', name, req.user.id);
-    res.json({ id: result.lastID, name, userId: req.user.id });
+    const result = await db.run(`INSERT INTO customers (name, contactPerson, billingStreet, billingNumber, billingPostalCode, billingCity, billingState, billingCountry, email, phone, vatNumber, userId) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`, 
+      name, contactPerson, billingStreet, billingNumber, billingPostalCode, billingCity, billingState, billingCountry, email, phone, vatNumber, req.user.id);
+    res.json({ id: result.lastID, name, contactPerson, billingStreet, billingNumber, billingPostalCode, billingCity, billingState, billingCountry, email, phone, vatNumber, userId: req.user.id });
   } catch (error) {
     console.error('Error creating customer:', error);
     res.status(500).json({ error: error.message });
@@ -51,7 +52,7 @@ router.post('/', async (req, res) => {
 router.put('/:customerId', async (req, res) => {
   try {
     const db = getDatabase();
-    const { name } = req.body;
+  const { name, contactPerson = '', billingStreet = '', billingNumber = '', billingPostalCode = '', billingCity = '', billingState = '', billingCountry = '', email = '', phone = '', vatNumber = '' } = req.body;
     
     if (!name) {
       return res.status(400).json({ error: 'Customer name is required' });
@@ -63,8 +64,9 @@ router.put('/:customerId', async (req, res) => {
       return res.status(404).json({ error: 'Customer not found or access denied' });
     }
     
-    await db.run('UPDATE customers SET name = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ? AND userId = ?', name, req.params.customerId, req.user.id);
-    res.json({ id: req.params.customerId, name, userId: req.user.id });
+    await db.run(`UPDATE customers SET name = ?, contactPerson = ?, billingStreet = ?, billingNumber = ?, billingPostalCode = ?, billingCity = ?, billingState = ?, billingCountry = ?, email = ?, phone = ?, vatNumber = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ? AND userId = ?`, 
+      name, contactPerson, billingStreet, billingNumber, billingPostalCode, billingCity, billingState, billingCountry, email, phone, vatNumber, req.params.customerId, req.user.id);
+    res.json({ id: req.params.customerId, name, contactPerson, billingStreet, billingNumber, billingPostalCode, billingCity, billingState, billingCountry, email, phone, vatNumber, userId: req.user.id });
   } catch (error) {
     console.error('Error updating customer:', error);
     res.status(500).json({ error: error.message });
