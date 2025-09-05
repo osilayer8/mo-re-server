@@ -17,7 +17,7 @@ export const authenticateToken = async (req, res, next) => {
 
     // Verify user exists in database
     const db = getDatabase();
-    const user = await db.get('SELECT id, email, firstName, lastName FROM users WHERE id = ?', decoded.userId);
+  const user = await db.get('SELECT id, email, firstName, lastName, role FROM users WHERE id = ?', decoded.userId);
     
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
@@ -41,7 +41,7 @@ export const optionalAuth = async (req, res, next) => {
       const decoded = verifyToken(token);
       if (decoded) {
         const db = getDatabase();
-        const user = await db.get('SELECT id, email, firstName, lastName FROM users WHERE id = ?', decoded.userId);
+  const user = await db.get('SELECT id, email, firstName, lastName, role FROM users WHERE id = ?', decoded.userId);
         if (user) {
           req.user = user;
         }

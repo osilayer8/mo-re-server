@@ -55,17 +55,17 @@ router.post('/register', async (req, res) => {
       `INSERT INTO users (
         email, password, firstName, lastName,
         companyName, companyVatId, companyStreet, companyNumber, companyPostalCode, companyCity, companyState, companyCountry, companyPhone,
-        locale, active
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        locale, role, active
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       email.toLowerCase(), hashedPassword, firstName, lastName,
       companyName, companyVatId, companyStreet, companyNumber, companyPostalCode, companyCity, companyState, companyCountry, companyPhone,
-      locale, 0
+      locale, 'user', 0
     );
 
     // Do not auto-login newly created users; return 201 and user id so operator can activate
     res.status(201).json({
       message: 'User created successfully (awaiting activation)',
-      user: {
+  user: {
         id: result.lastID,
         email: email.toLowerCase(),
         firstName,
@@ -80,7 +80,8 @@ router.post('/register', async (req, res) => {
         companyCountry,
         companyPhone,
         locale,
-        active: 0
+  role: 'user',
+  active: 0
       }
     });
   } catch (error) {
@@ -129,6 +130,7 @@ router.post('/login', async (req, res) => {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        role: user.role || 'user',
         active: user.active
       }
     });
@@ -142,7 +144,7 @@ router.post('/login', async (req, res) => {
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
     const db = getDatabase();
-  const row = await db.get(`SELECT id, email, firstName, lastName, companyName, companyStreet, companyNumber, companyPostalCode, companyCity, companyState, companyCountry, companyPhone, companyVatId, vatPercent, invoiceNumber, bankIbanCipher, bankIbanIv, bankIbanTag, bankName, bankBic, invoiceNotes, locale, active FROM users WHERE id = ?`, req.user.id);
+  const row = await db.get(`SELECT id, email, firstName, lastName, companyName, companyStreet, companyNumber, companyPostalCode, companyCity, companyState, companyCountry, companyPhone, companyVatId, vatPercent, invoiceNumber, bankIbanCipher, bankIbanIv, bankIbanTag, bankName, bankBic, invoiceNotes, locale, role, active FROM users WHERE id = ?`, req.user.id);
     if (!row) return res.status(404).json({ error: 'User not found' });
     let decryptedIban = ''
     if (row.bankIbanCipher) {
@@ -170,6 +172,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
       bankIbanMasked: maskIban(decryptedIban),
   bankIban: decryptedIban, // full value for settings page
   locale: row.locale || 'en',
+  role: row.role || 'user',
   active: row.active ? 1 : 0
     }
     res.json({ user });
@@ -207,7 +210,7 @@ router.put('/profile', authenticateToken, async (req, res) => {
       firstName, lastName, companyName, companyStreet, companyNumber, companyPostalCode, companyCity, companyState, companyCountry, companyPhone, companyVatId, vatPercent, invoiceNumber, cipherFields.bankIbanCipher, cipherFields.bankIbanIv, cipherFields.bankIbanTag, bankName, bankBic, invoiceNotes, locale, req.user.id
     );
 
-  const updated = await db.get(`SELECT id, email, firstName, lastName, companyName, companyStreet, companyNumber, companyPostalCode, companyCity, companyState, companyCountry, companyPhone, companyVatId, vatPercent, invoiceNumber, bankIbanCipher, bankIbanIv, bankIbanTag, bankName, bankBic, invoiceNotes, locale, active FROM users WHERE id = ?`, req.user.id);
+  const updated = await db.get(`SELECT id, email, firstName, lastName, companyName, companyStreet, companyNumber, companyPostalCode, companyCity, companyState, companyCountry, companyPhone, companyVatId, vatPercent, invoiceNumber, bankIbanCipher, bankIbanIv, bankIbanTag, bankName, bankBic, invoiceNotes, locale, role, active FROM users WHERE id = ?`, req.user.id);
     let decryptedIban = ''
     if (updated.bankIbanCipher) {
       decryptedIban = decryptValue({ cipher: updated.bankIbanCipher, iv: updated.bankIbanIv, tag: updated.bankIbanTag })
@@ -233,7 +236,8 @@ router.put('/profile', authenticateToken, async (req, res) => {
       invoiceNotes: updated.invoiceNotes,
       bankIbanMasked: maskIban(decryptedIban),
   bankIban: decryptedIban,
-  locale: updated.locale || 'en'
+  locale: updated.locale || 'en',
+  role: updated.role || 'user'
     }
 
     res.json({

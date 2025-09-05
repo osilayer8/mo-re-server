@@ -34,6 +34,7 @@ export const initDatabase = async () => {
   bankBic TEXT DEFAULT '',
   invoiceNotes TEXT DEFAULT '',
   locale TEXT DEFAULT 'en',
+  role TEXT DEFAULT 'user',
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
   );`);
@@ -96,6 +97,10 @@ export const initDatabase = async () => {
   // Ensure legacy databases have the active column (0 = inactive, 1 = active)
   if (!userCols.find(c => c.name === 'active')) {
     await db.exec(`ALTER TABLE users ADD COLUMN active INTEGER DEFAULT 0`)
+  }
+  // Ensure legacy databases have the role column (default 'user')
+  if (!userCols.find(c => c.name === 'role')) {
+    await db.exec(`ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'`)
   }
 
   await db.exec(`CREATE TABLE IF NOT EXISTS tasks (
