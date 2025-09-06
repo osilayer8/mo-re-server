@@ -17,8 +17,13 @@ export const authenticateToken = async (req, res, next) => {
 
     // Verify user exists in database
     const db = getDatabase();
-  const user = await db.get('SELECT id, email, firstName, lastName, role FROM users WHERE id = ?', decoded.userId);
-    
+    const user = (
+      await db.query(
+        'SELECT id, email, first_name, last_name, role FROM users WHERE id = $1',
+        [decoded.userId]
+      )
+    ).rows[0];
+
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
     }
@@ -27,6 +32,7 @@ export const authenticateToken = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
+    console.log(error);
     return res.status(401).json({ error: 'Authentication failed' });
   }
 };
@@ -41,7 +47,12 @@ export const optionalAuth = async (req, res, next) => {
       const decoded = verifyToken(token);
       if (decoded) {
         const db = getDatabase();
-  const user = await db.get('SELECT id, email, firstName, lastName, role FROM users WHERE id = ?', decoded.userId);
+        const user = (
+          await db.query(
+            'SELECT id, email, first_name, last_name, role FROM users WHERE id = $1',
+            [decoded.userId]
+          )
+        ).rows[0];
         if (user) {
           req.user = user;
         }

@@ -2,7 +2,8 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
 // JWT Secret - in production, this should be in environment variables
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this-in-production';
+const JWT_SECRET =
+  process.env.JWT_SECRET || 'your-super-secret-key-change-this-in-production';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 // Generate JWT token
