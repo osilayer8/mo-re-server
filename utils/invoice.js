@@ -128,8 +128,8 @@ export function renderInvoiceHtml({
       ? user.vatPercent
       : parseFloat(user.vatPercent || '0');
   const vatPercent = isNaN(vatPercentRaw) ? 0 : vatPercentRaw;
-  const vatAmount = vatPercent > 0 ? subtotal * (vatPercent / 100) : 0;
-  const grandTotal = vatPercent > 0 ? subtotal + vatAmount : subtotal;
+  const vatAmount = vatPercent > 0 ? Number(subtotal) * (vatPercent / 100) : 0;
+  const grandTotal = vatPercent > 0 ? Number(subtotal) + vatAmount : subtotal;
   const vatPercentLabel = Number.isFinite(vatPercent)
     ? String(vatPercent)
     : '0';
@@ -201,9 +201,7 @@ export function renderInvoiceHtml({
     columnsCount - 1
   }\" style=\"padding:6px 8px;text-align:right;font-weight:bold;\">${
     t.subtotal
-  }</td><td style=\"padding:6px 8px;text-align:right;\">€${subtotal.toFixed(
-    2
-  )}</td></tr>
+  }</td><td style=\"padding:6px 8px;text-align:right;\">€${subtotal}</td></tr>
   <tr><td colspan=\"${
     columnsCount - 1
   }\" style=\"padding:6px 8px;text-align:right;font-weight:bold;\">${t.vat(
@@ -215,9 +213,7 @@ export function renderInvoiceHtml({
     columnsCount - 1
   }\" style=\"padding:6px 8px;text-align:right;font-weight:bold;\">${
     t.total
-  }</td><td style=\"padding:6px 8px;text-align:right;font-weight:bold;\">€${grandTotal.toFixed(
-    2
-  )}</td></tr>
+  }</td><td style=\"padding:6px 8px;text-align:right;font-weight:bold;\">€${grandTotal}</td></tr>
     </tbody>
   </table>
   ${

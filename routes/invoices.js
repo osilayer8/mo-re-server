@@ -43,7 +43,7 @@ router.post(
           console.error('Failed to persist invoiceDate', e);
         }
       }
-      console.log(data);
+
       const html = renderInvoiceHtml({
         ...toCamelCase(data),
         invoiceNo,
@@ -55,10 +55,10 @@ router.post(
       const items = (data.tasks || []).map((t) => ({
         date: t.date || null,
         name: t.name,
-        hours: t.estimatedHours || 0,
+        hours: t.estimated_hours || 0,
         cost: data.isFixed
           ? null
-          : (t.estimatedHours || 0) * (data.project?.hourlyRate || 0)
+          : (t.estimated_hours || 0) * (data.project?.hourly_rate || 0)
       }));
       // VAT calculation mirrors utils/invoice.js
       const vatPercentRaw =
@@ -66,8 +66,10 @@ router.post(
           ? data.user.vat_percent
           : parseFloat(data.user.vat_percent || '0');
       const vatPercent = isNaN(vatPercentRaw) ? 0 : vatPercentRaw;
-      const vatAmount = vatPercent > 0 ? data.subtotal * (vatPercent / 100) : 0;
-      const total = vatPercent > 0 ? data.subtotal + vatAmount : data.subtotal;
+      const vatAmount =
+        vatPercent > 0 ? Number(data.subtotal) * (vatPercent / 100) : 0;
+      const total =
+        vatPercent > 0 ? Number(data.subtotal) + vatAmount : data.subtotal;
       const table = {
         isFixed: data.isFixed,
         hasAnyDate,
